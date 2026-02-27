@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Fredoka, Nunito } from 'next/font/google';
 import './globals.css';
+import { SoundProvider } from '@/contexts/sound-context';
+import { MuteButton } from '@/components/mute-button';
 
 const fredoka = Fredoka({
   subsets: ['latin'],
@@ -44,7 +46,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${fredoka.variable} ${nunito.variable} antialiased`}>
-        {children}
+        <SoundProvider>
+          {children}
+          <MuteButton />
+        </SoundProvider>
       </body>
     </html>
   );

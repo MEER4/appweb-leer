@@ -17,6 +17,9 @@ function getAudioContext() {
 
 export function playSound(name: 'correct' | 'wrong' | 'celebration' | 'unlock' | 'click' | 'swoosh') {
     try {
+        // Respect global mute setting
+        if (typeof window !== 'undefined' && localStorage.getItem('leer-jugando-muted') === 'true') return;
+
         const ctx = getAudioContext();
         if (!ctx) return; // Estamos en SSR o no soportado
 

@@ -61,6 +61,9 @@ export function useSpeech() {
     const speak = useCallback((text: string, options?: { rate?: number; pitch?: number }) => {
         if (!supported || typeof window === 'undefined') return;
 
+        // Respect global mute setting
+        if (localStorage.getItem('leer-jugando-muted') === 'true') return;
+
         // Cancel any ongoing speech before starting a new one
         window.speechSynthesis.cancel();
 
