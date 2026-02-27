@@ -18,8 +18,8 @@ export function LetterSlot({ expected, filled, isCorrect }: LetterSlotProps) {
                 scale: isCorrect === true ? [1, 1.1, 1] : 1, // pulso de acierto
             }}
             transition={{ duration: 0.3 }}
-            className={`w-20 h-20 md:w-28 md:h-28 rounded-3xl border-4 ${filled ? 'border-solid' : 'border-dashed'}
-                 border-secondary flex items-center justify-center font-kids text-5xl md:text-6xl text-dark shadow-inner`}
+            className={`w-14 h-14 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-2xl md:rounded-3xl border-2 sm:border-4 ${filled ? 'border-solid' : 'border-dashed'}
+                 border-secondary flex items-center justify-center font-kids text-3xl sm:text-5xl md:text-6xl text-dark shadow-inner`}
         >
             {filled || ''}
         </motion.div>

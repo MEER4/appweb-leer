@@ -129,14 +129,14 @@ export function PhoneticsGame() {
         <KidsZoneWrapper>
             <div className="min-h-screen bg-bg-kids flex flex-col p-6 items-center overflow-hidden">
                 {/* Header Navbar simple */}
-                <div className="w-full max-w-5xl flex justify-between items-center mb-8 bg-white/60 p-4 rounded-3xl z-10">
+                <div className="w-full max-w-5xl flex flex-wrap justify-center sm:justify-between items-center gap-2 sm:gap-4 mb-4 sm:mb-8 bg-white/60 p-3 sm:p-4 rounded-3xl z-10">
                     <button
                         onClick={goBack}
-                        className="font-kids text-3xl text-dark bg-white px-6 py-2 rounded-2xl shadow-[0_4px_0_0_#cbd5e1] hover:translate-y-1 active:translate-y-2 active:shadow-none transition-all"
+                        className="font-kids text-xl sm:text-3xl text-dark bg-white px-4 sm:px-6 py-2 rounded-2xl shadow-[0_4px_0_0_#cbd5e1] hover:translate-y-1 active:translate-y-2 active:shadow-none transition-all"
                     >
                         ⬅️ Volver
                     </button>
-                    <div className="font-kids text-3xl text-primary bg-white px-6 py-2 rounded-2xl">
+                    <div className="font-kids text-xl sm:text-3xl text-primary bg-white px-4 sm:px-6 py-2 rounded-2xl text-center">
                         Nivel {levelIndex + 1}: {currentLevel.imageIcon} {currentLevel.word}
                     </div>
                 </div>
@@ -148,13 +148,13 @@ export function PhoneticsGame() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", bounce: 0.5 }}
-                        className="text-[12rem] bg-white w-64 h-64 rounded-full flex items-center justify-center shadow-lg border-8 border-primary relative z-10"
+                        className="text-[6rem] sm:text-[10rem] md:text-[12rem] bg-white w-40 h-40 sm:w-56 sm:h-56 md:w-64 md:h-64 rounded-full flex items-center justify-center shadow-lg border-[6px] sm:border-8 border-primary relative z-10"
                     >
                         {currentLevel.imageIcon}
                     </motion.div>
 
                     {/* Slots para armar la palabra */}
-                    <div className="flex gap-4 p-8 bg-white/40 rounded-[3rem] backdrop-blur-sm z-10">
+                    <div className="flex flex-wrap justify-center gap-2 sm:gap-4 p-4 sm:p-8 bg-white/40 rounded-[2rem] sm:rounded-[3rem] backdrop-blur-sm z-10 w-full">
                         {currentLevel.word.split('').map((char, index) => {
                             const isMissing = index === currentLevel.missingIndex;
 
@@ -176,8 +176,8 @@ export function PhoneticsGame() {
                             }
 
                             return (
-                                <div key={`char-${index}`} className="flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 bg-white rounded-3xl shadow-sm border-4 border-gray-100">
-                                    <span className="font-kids text-6xl text-dark uppercase">{char}</span>
+                                <div key={`char-${index}`} className="flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 md:w-28 md:h-28 bg-white rounded-2xl md:rounded-3xl shadow-sm border-2 sm:border-4 border-gray-100">
+                                    <span className="font-kids text-3xl sm:text-5xl md:text-6xl text-dark uppercase">{char}</span>
                                 </div>
                             );
                         })}
