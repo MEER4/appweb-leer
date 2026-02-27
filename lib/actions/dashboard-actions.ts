@@ -90,3 +90,104 @@ export async function getKids() {
 
     return kids || [];
 }
+
+// Map lesson IDs to their target item (letter or number)
+const LESSON_ITEM_MAP: Record<string, { item: string; type: 'letter' | 'number' }> = {
+    // Phonetics - Vocales
+    'lvl_1_a': { item: 'A', type: 'letter' },
+    'lvl_2_e': { item: 'E', type: 'letter' },
+    'lvl_3_i': { item: 'I', type: 'letter' },
+    'lvl_4_o': { item: 'O', type: 'letter' },
+    'lvl_5_u': { item: 'U', type: 'letter' },
+    // Phonetics - Primeras Letras
+    'lvl_6_m': { item: 'M', type: 'letter' },
+    'lvl_7_p': { item: 'P', type: 'letter' },
+    'lvl_8_s': { item: 'S', type: 'letter' },
+    'lvl_9_l': { item: 'L', type: 'letter' },
+    // Phonetics - Letras Fuertes
+    'lvl_10_b': { item: 'B', type: 'letter' },
+    'lvl_11_c': { item: 'C', type: 'letter' },
+    'lvl_12_d': { item: 'D', type: 'letter' },
+    'lvl_13_f': { item: 'F', type: 'letter' },
+    'lvl_14_g': { item: 'G', type: 'letter' },
+    'lvl_15_j': { item: 'J', type: 'letter' },
+    'lvl_16_r': { item: 'R', type: 'letter' },
+    'lvl_17_t': { item: 'T', type: 'letter' },
+    // Phonetics - Letras Suaves
+    'lvl_18_h': { item: 'H', type: 'letter' },
+    'lvl_19_k': { item: 'K', type: 'letter' },
+    'lvl_20_n': { item: 'N', type: 'letter' },
+    'lvl_21_ny': { item: 'Ñ', type: 'letter' },
+    // Math
+    'math_1': { item: '1', type: 'number' },
+    'math_2': { item: '2', type: 'number' },
+    'math_3': { item: '3', type: 'number' },
+    'math_4': { item: '4', type: 'number' },
+    'math_5': { item: '5', type: 'number' },
+    'math_6': { item: '6', type: 'number' },
+    'math_7': { item: '7', type: 'number' },
+    'math_8': { item: '8', type: 'number' },
+    'math_9': { item: '9', type: 'number' },
+    'math_10': { item: '10', type: 'number' },
+};
+
+export async function getLetterMastery(kidId: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado');
+
+    // Fetch ALL progress for this kid (not just 7 days) to build a cumulative mastery view
+    const { data: allProgress } = await supabase
+        .from('progress')
+        .select('lesson_id, lesson_type, score, mistakes')
+        .eq('kid_id', kidId)
+        .in('lesson_type', ['phonetics', 'math'])
+        .order('completed_at', { ascending: false });
+
+    if (!allProgress || allProgress.length === 0) {
+        return { letters: [], numbers: [] };
+    }
+
+    // Aggregate by item
+    const aggregated: Record<string, {
+        item: string;
+        type: 'letter' | 'number';
+        attempts: number;
+        totalScore: number;
+        totalMistakes: number;
+    }> = {};
+
+    allProgress.forEach(p => {
+        const mapping = LESSON_ITEM_MAP[p.lesson_id];
+        if (!mapping) return;
+
+        if (!aggregated[mapping.item]) {
+            aggregated[mapping.item] = {
+                item: mapping.item,
+                type: mapping.type,
+                attempts: 0,
+                totalScore: 0,
+                totalMistakes: 0,
+            };
+        }
+
+        aggregated[mapping.item].attempts += 1;
+        aggregated[mapping.item].totalScore += (p.score ?? 100);
+        aggregated[mapping.item].totalMistakes += (p.mistakes ?? 0);
+    });
+
+    // Convert to arrays with averages
+    const items = Object.values(aggregated).map(a => ({
+        item: a.item,
+        type: a.type,
+        attempts: a.attempts,
+        avgScore: Math.round(a.totalScore / a.attempts),
+        totalMistakes: a.totalMistakes,
+    }));
+
+    return {
+        letters: items.filter(i => i.type === 'letter').sort((a, b) => a.avgScore - b.avgScore),
+        numbers: items.filter(i => i.type === 'number').sort((a, b) => a.avgScore - b.avgScore),
+    };
+}

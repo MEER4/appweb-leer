@@ -28,6 +28,7 @@ export function PhoneticsGame() {
 
     // Estado para animar el temblor (shake) en caso de error
     const [shakeKey, setShakeKey] = useState(0);
+    const [mistakes, setMistakes] = useState(0);
 
     useEffect(() => {
         // Al montar, ver si hay un levelId en URL
@@ -45,6 +46,7 @@ export function PhoneticsGame() {
         setAvailable([...currentLevel.options].sort(() => Math.random() - 0.5));
         setFilledLetter(null);
         setIsWon(false);
+        setMistakes(0);
         playSound('click');
         // Pequeño retraso para decir la palabra que vamos a formar
         setTimeout(() => speak(currentLevel.word), 600);
@@ -66,6 +68,7 @@ export function PhoneticsGame() {
             handleWin();
         } else {
             playSound('wrong');
+            setMistakes(prev => prev + 1);
             // Disparamos un re-render de la key para que la letra tiemble
             setShakeKey(prev => prev + 1);
         }
@@ -90,7 +93,8 @@ export function PhoneticsGame() {
         const progressData = {
             lessonType: 'phonetics' as const,
             lessonId: currentLevel.id,
-            score: 100,
+            score: Math.max(0, 100 - (mistakes * 20)),
+            mistakes,
             ...(storedKidId && storedKidId !== 'null' && storedKidId !== 'unknown' ? { kidId: storedKidId } : {})
         };
 

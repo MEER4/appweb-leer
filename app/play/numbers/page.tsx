@@ -22,6 +22,7 @@ function NumbersGame() {
 
     const [isWon, setIsWon] = useState(false);
     const [shakeKey, setShakeKey] = useState(0);
+    const [mistakes, setMistakes] = useState(0);
 
     useEffect(() => {
         const lvlId = searchParams.get('lvl');
@@ -35,6 +36,7 @@ function NumbersGame() {
 
     useEffect(() => {
         setIsWon(false);
+        setMistakes(0);
         playSound('click');
         // Announce the number of items they need to count
         setTimeout(() => speak(`¿Cuántos hay?`), 600);
@@ -49,6 +51,7 @@ function NumbersGame() {
             handleWin();
         } else {
             playSound('wrong');
+            setMistakes(prev => prev + 1);
             setShakeKey(prev => prev + 1);
         }
     };
@@ -69,7 +72,8 @@ function NumbersGame() {
         const progressData = {
             lessonType: 'math' as const,
             lessonId: currentLevel.id,
-            score: 100,
+            score: Math.max(0, 100 - (mistakes * 20)),
+            mistakes,
             ...(storedKidId && storedKidId !== 'null' && storedKidId !== 'unknown' ? { kidId: storedKidId } : {})
         };
 

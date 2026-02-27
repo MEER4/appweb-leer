@@ -40,6 +40,7 @@ export async function saveProgress(input: z.infer<typeof progressSchema>) {
             lesson_type: validated.lessonType,
             lesson_id: validated.lessonId,
             score: validated.score,
+            mistakes: validated.mistakes ?? 0,
         });
 
         if (error) {

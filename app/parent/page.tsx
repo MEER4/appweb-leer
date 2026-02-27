@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getDashboardStats, getKids } from '@/lib/actions/dashboard-actions';
+import { getDashboardStats, getKids, getLetterMastery } from '@/lib/actions/dashboard-actions';
 import Link from 'next/link';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Cell } from 'recharts';
 import { Kid } from '@/types/database.types';
 
 export default function ParentDashboardPage() {
     const [kids, setKids] = useState<Kid[]>([]);
     const [selectedKid, setSelectedKid] = useState<string | null>(null);
     const [stats, setStats] = useState<any>(null);
+    const [mastery, setMastery] = useState<{ letters: any[]; numbers: any[] } | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -34,8 +35,12 @@ export default function ParentDashboardPage() {
         async function fetchStats() {
             if (!selectedKid) return;
             try {
-                const data = await getDashboardStats(selectedKid);
+                const [data, masteryData] = await Promise.all([
+                    getDashboardStats(selectedKid),
+                    getLetterMastery(selectedKid),
+                ]);
                 setStats(data);
+                setMastery(masteryData);
             } catch (e) {
                 console.error('Error fetching stats', e);
             }
@@ -138,6 +143,63 @@ export default function ParentDashboardPage() {
             {stats && stats.totalLessons === 0 && (
                 <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl shadow-inner text-center">
                     <p className="text-blue-800 font-medium">Aún no hay mucha actividad esta semana. ¡Anima a tu pequeño a jugar y aprender hoy mismo!</p>
+                </div>
+            )}
+
+            {/* Dominio por Letra */}
+            {mastery && mastery.letters.length > 0 && (
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 className="text-xl font-bold text-dark mb-2">🔤 Dominio por Letra</h3>
+                    <p className="text-sm text-gray-500 mb-6">Letras ordenadas de menor a mayor dominio. Rojo = necesita práctica, verde = dominada.</p>
+                    <div style={{ height: Math.max(300, mastery.letters.length * 36) }} className="w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={mastery.letters} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                                <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} unit="%" />
+                                <YAxis dataKey="item" type="category" axisLine={false} tickLine={false} tick={{ fill: '#374151', fontSize: 14, fontWeight: 700 }} width={30} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(value: any) => [`${value}%`, 'Dominio']}
+                                />
+                                <Bar dataKey="avgScore" name="Dominio" radius={[0, 6, 6, 0]} maxBarSize={24}>
+                                    {mastery.letters.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.avgScore >= 80 ? '#22C55E' : entry.avgScore >= 50 ? '#F59E0B' : '#EF4444'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="flex gap-4 mt-4 justify-center text-sm text-gray-500">
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Necesita práctica (&lt;50%)</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> En progreso (50-79%)</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Dominada (80%+)</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Dominio por Número */}
+            {mastery && mastery.numbers.length > 0 && (
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 className="text-xl font-bold text-dark mb-2">🔢 Dominio por Número</h3>
+                    <p className="text-sm text-gray-500 mb-6">Números ordenados de menor a mayor dominio.</p>
+                    <div style={{ height: Math.max(200, mastery.numbers.length * 36) }} className="w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={mastery.numbers} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                                <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} unit="%" />
+                                <YAxis dataKey="item" type="category" axisLine={false} tickLine={false} tick={{ fill: '#374151', fontSize: 14, fontWeight: 700 }} width={30} />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(value: any) => [`${value}%`, 'Dominio']}
+                                />
+                                <Bar dataKey="avgScore" name="Dominio" radius={[0, 6, 6, 0]} maxBarSize={24}>
+                                    {mastery.numbers.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.avgScore >= 80 ? '#22C55E' : entry.avgScore >= 50 ? '#F59E0B' : '#EF4444'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             )}
         </div>
