@@ -28,6 +28,7 @@ function TracingGameContent() {
     const [level, setLevel] = useState<TracingLevel | null>(null);
     const [selectedColor, setSelectedColor] = useState(COLORS[0]);
     const [isWon, setIsWon] = useState(false);
+    const [hasError, setHasError] = useState(false);
     const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
@@ -50,6 +51,9 @@ function TracingGameContent() {
 
         setLevel(currentLevel);
         setIsWon(false);
+        setHasError(false);
+        // Limpiamos la pizarra al cambiar de letra interactiva
+        boardRef.current?.clearBoard();
     }, [searchParams, router]);
 
     const handleClear = () => {
@@ -59,6 +63,18 @@ function TracingGameContent() {
 
     const handleWin = async () => {
         if (isWon) return; // Prevent double clicks
+
+        const isValid = boardRef.current?.validateTrace();
+
+        if (!isValid) {
+            playSound('wrong');
+            setHasError(true);
+            setTimeout(() => setHasError(false), 2000);
+
+            // Limpia el garabato incorrecto del niño
+            boardRef.current?.clearBoard();
+            return;
+        }
 
         setIsWon(true);
         playSound('correct');
@@ -133,40 +149,74 @@ function TracingGameContent() {
 
                 {/* Botón Flotante Gigante para Validar */}
                 {!isWon && (
-                    <div className="mt-8 flex justify-center w-full z-10">
+                    <div className="mt-8 flex flex-col items-center w-full z-10">
+                        {hasError && (
+                            <span className="text-red-500 font-bold mb-2 animate-bounce">
+                                ¡Intenta seguir la forma de la letra!
+                            </span>
+                        )}
                         <button
                             onClick={handleWin}
-                            className="bg-success text-white font-kids text-3xl md:text-5xl py-4 px-12 rounded-full shadow-[0_8px_0_0_#16a34a] hover:-translate-y-2 active:translate-y-2 active:shadow-none transition-all flex items-center gap-4"
+                            className={`bg-primary text-dark font-kids text-3xl md:text-5xl py-4 px-12 rounded-full shadow-[0_8px_0_0_#d97706] transition-all flex items-center gap-4 ${hasError ? 'animate-shake opacity-80' : 'hover:-translate-y-2 active:translate-y-2 active:shadow-none'
+                                }`}
                         >
-                            🎉 ¡Lo Logré!
+                            ✅ Confirmar Trazo
                         </button>
                     </div>
                 )}
 
                 {/* Modal de Victoria */}
                 {isWon && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-                        <div className="bg-white p-8 rounded-[3rem] shadow-2xl flex flex-col items-center text-center animate-in zoom-in slide-in-from-bottom-8 mx-4">
-                            <span className="text-8xl mb-4">🏆</span>
-                            <h2 className="font-kids text-5xl text-primary mb-2">¡Qué obra de arte!</h2>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl flex flex-col items-center text-center animate-in zoom-in slide-in-from-bottom-8 mx-auto w-full max-w-lg">
+                            <div className="text-6xl sm:text-8xl mb-4 relative drop-shadow-[0_4px_4px_rgba(0,0,0,0.1)]">
+                                🏆
+                            </div>
+                            <h2 className="font-kids text-4xl sm:text-5xl md:text-6xl text-primary mb-2 whitespace-nowrap pt-2">¡Qué obra de arte!</h2>
                             <p className="text-xl text-gray-500 font-bold mb-8">Tus trazos se ven increíbles.</p>
 
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => router.push('/play')}
-                                    className="bg-gray-100 text-gray-600 font-bold py-4 px-8 rounded-full text-xl hover:bg-gray-200 transition-colors"
-                                >
-                                    Ir al Mapa
-                                </button>
+                            <div className="flex flex-col sm:flex-row gap-4 w-full">
                                 <button
                                     onClick={() => {
+                                        playSound('click');
                                         handleClear();
                                         setIsWon(false);
                                     }}
-                                    className="bg-secondary text-white font-bold py-4 px-8 rounded-full text-xl shadow-[0_6px_0_0_#d97706] active:translate-y-1 active:shadow-none hover:-translate-y-1 transition-all"
+                                    className="flex-1 bg-gray-100 text-gray-700 border-4 border-gray-200 font-kids text-2xl py-4 px-6 rounded-[2rem] shadow-sm active:translate-y-1 hover:-translate-y-1 transition-all"
                                 >
-                                    Dibujar de Nuevo
+                                    ✏️ Trazar<br />de nuevo
                                 </button>
+
+                                {(() => {
+                                    const currentIndex = TRACING_LEVELS.findIndex(l => l.id === level.id);
+                                    const nextLevel = currentIndex !== -1 && currentIndex < TRACING_LEVELS.length - 1
+                                        ? TRACING_LEVELS[currentIndex + 1]
+                                        : null;
+
+                                    if (nextLevel) {
+                                        return (
+                                            <button
+                                                onClick={() => {
+                                                    playSound('click');
+                                                    setIsWon(false);
+                                                    router.push('/play/tracing?lvl=' + nextLevel.id);
+                                                }}
+                                                className="flex-1 bg-secondary text-white font-kids text-2xl py-4 px-6 rounded-[2rem] shadow-[0_6px_0_0_#d97706] active:translate-y-2 hover:-translate-y-1 active:shadow-none transition-all"
+                                            >
+                                                ➡️ Siguiente<br />letra
+                                            </button>
+                                        );
+                                    } else {
+                                        return (
+                                            <button
+                                                onClick={() => { playSound('click'); router.push('/play'); }}
+                                                className="flex-1 bg-secondary text-white font-kids text-2xl py-4 px-6 rounded-[2rem] shadow-[0_6px_0_0_#d97706] active:translate-y-2 hover:-translate-y-1 active:shadow-none transition-all"
+                                            >
+                                                🗺️ Ir al<br />Mapa
+                                            </button>
+                                        );
+                                    }
+                                })()}
                             </div>
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useImperativeHandle, forwardRef } f
 
 export type TracingBoardRef = {
     clearBoard: () => void;
+    validateTrace: () => boolean;
 };
 
 type TracingBoardProps = {
@@ -59,6 +60,73 @@ const TracingBoard = forwardRef<TracingBoardRef, TracingBoardProps>(
                 if (!canvas || !ctx) return;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             },
+            validateTrace: () => {
+                const canvas = canvasRef.current;
+                if (!canvas || !ctx) return false;
+
+                // 1. Crear un canvas offscreen perfecto
+                const offscreen = document.createElement('canvas');
+                offscreen.width = canvas.width;
+                offscreen.height = canvas.height;
+                const offCtx = offscreen.getContext('2d');
+                if (!offCtx) return false;
+
+                const dpr = window.devicePixelRatio || 1;
+                // Escalar el contexto igual que el original
+                offCtx.scale(dpr, dpr);
+
+                // Dibujar la letra perfecta en el centro tal como está en el CSS
+                const rect = canvas.getBoundingClientRect();
+
+                // Estos valores de fuente deben coincidir con Tailwind "font-kids text-[15rem] md:text-[25rem]"
+                // Aproximación: text-[25rem] es 400px en Desktop. Necesitamos calcular basado en view.
+                const fontSize = window.innerWidth >= 768 ? 400 : 240;
+                offCtx.font = `${fontSize}px 'Fredoka', 'Comic Sans MS', cursive`; // Asumiendo font-kids
+                offCtx.textAlign = 'center';
+                offCtx.textBaseline = 'middle';
+                offCtx.fillStyle = '#000000'; // Color sólido para extraer pixeles más fácil
+
+                // Dibujar en el centro
+                offCtx.fillText(targetLetter, rect.width / 2, rect.height / 2);
+
+                // 2. Extraer los datos de píxeles
+                const perfectData = offCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+                const userData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+                // 3. Comparar
+                let perfectPixels = 0;
+                let userPixels = 0;
+                let overlappingPixels = 0;
+
+                // Los datos de la imagen vienen en un array plano unidimensional de RGBA: [r, g, b, a, r, g, b, a, ...]
+                for (let i = 0; i < perfectData.length; i += 4) {
+                    const isPerfectPixel = perfectData[i + 3] > 0; // Alpha > 0
+                    const isUserPixel = userData[i + 3] > 0;
+
+                    if (isPerfectPixel) perfectPixels++;
+                    if (isUserPixel) userPixels++;
+
+                    if (isPerfectPixel && isUserPixel) {
+                        overlappingPixels++;
+                    }
+                }
+
+                // Cálculo de métricas
+                if (perfectPixels === 0) return true; // Fallback si no hay font
+
+                // a) ¿Qué tanto de la letra perfecta cubrió el usuario?
+                const coverage = overlappingPixels / perfectPixels;
+
+                // b) De TODO lo que rayó el usuario, ¿qué tanto cayó DENTRO de la letra? (Precisión)
+                // Evita que simplemente pinten toda la pantalla como una brocha gigante
+                const accuracy = userPixels > 0 ? overlappingPixels / userPixels : 0;
+
+                console.log(`Trace Validation -> Coverage: ${(coverage * 100).toFixed(1)}%, Accuracy: ${(accuracy * 100).toFixed(1)}%`);
+
+                // Umbrales tolerantes para niños
+                // Debe cubrir al menos el 25% de la letra y su trazo debe ser al menos 30% preciso
+                return coverage > 0.25 && accuracy > 0.30;
+            }
         }));
 
         // Obtener coordenadas relativas al canvas (soporta Mouse y Touch a través de PointerEvent)
