@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import KidsZoneWrapper from '@/components/kids-zone-wrapper';
 import { DraggableLetter } from '@/components/draggable-letter';
 import { LetterSlot } from '@/components/letter-slot';
-import { playSound, speakText } from '@/lib/utils/sound-helper';
+import { playSound } from '@/lib/utils/sound-helper';
+import { useSpeech } from '@/hooks/use-speech';
 import { KidButton } from '@/components/kid-button';
 import { ALL_PHONETICS_LEVELS } from '@/lib/constants/levels';
 import confetti from 'canvas-confetti';
@@ -16,6 +17,7 @@ import { queueProgress } from '@/lib/utils/offline-queue';
 export function PhoneticsGame() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { speak } = useSpeech();
     const [levelIndex, setLevelIndex] = useState(0);
 
     const currentLevel = ALL_PHONETICS_LEVELS[levelIndex];
@@ -45,13 +47,13 @@ export function PhoneticsGame() {
         setIsWon(false);
         playSound('click');
         // Pequeño retraso para decir la palabra que vamos a formar
-        setTimeout(() => speakText(currentLevel.word), 600);
-    }, [currentLevel]);
+        setTimeout(() => speak(currentLevel.word), 600);
+    }, [currentLevel, speak]);
 
     const handleDrop = (letter: string) => {
         if (letter === currentLevel.correctLetter) {
             playSound('correct');
-            setTimeout(() => speakText(letter), 400);
+            setTimeout(() => speak(letter), 400);
 
             setFilledLetter(letter);
 
@@ -81,7 +83,7 @@ export function PhoneticsGame() {
             colors: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C']
         });
 
-        setTimeout(() => speakText(currentLevel.word), 1500);
+        setTimeout(() => speak(currentLevel.word), 1500);
 
         const storedKidId = sessionStorage.getItem('kidId');
 

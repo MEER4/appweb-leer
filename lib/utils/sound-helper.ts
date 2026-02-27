@@ -13,24 +13,7 @@ function getAudioContext() {
     return audioCtx;
 }
 
-export function speakText(text: string) {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        // Cancelar cualquier audio hablando en este momento para evitar colas
-        window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES'; // Castellano
-        utterance.rate = 0.9; // Un poco más lento para los niños
-        utterance.pitch = 1.1; // Un poco más agudo/amigable
-
-        // Intentar buscar una voz en español
-        const voices = window.speechSynthesis.getVoices();
-        const esVoice = voices.find(v => v.lang.startsWith('es'));
-        if (esVoice) utterance.voice = esVoice;
-
-        window.speechSynthesis.speak(utterance);
-    }
-}
 
 export function playSound(name: 'correct' | 'wrong' | 'celebration' | 'unlock' | 'click' | 'swoosh') {
     try {

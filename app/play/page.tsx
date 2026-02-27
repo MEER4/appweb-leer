@@ -8,6 +8,7 @@ import { ALL_PHONETICS_LEVELS } from '@/lib/constants/levels';
 import { ALL_STORIES } from '@/lib/constants/stories';
 import { MEMORY_LEVELS } from '@/lib/constants/memory-levels';
 import { TRACING_LEVELS } from '@/lib/constants/tracing-levels';
+import { ALL_MATH_LEVELS } from '@/lib/constants/math-levels';
 import { getCompletedLevels } from '@/lib/actions/level-actions';
 import { getKids } from '@/lib/actions/dashboard-actions';
 import { Kid } from '@/types/database.types';
@@ -25,6 +26,7 @@ export default function PlayLobby() {
         cuentos: true,
         memoria: true,
         trazos: true,
+        numeros: true,
     });
 
     const toggleSection = (key: string) => {
@@ -96,6 +98,15 @@ export default function PlayLobby() {
         }
         playSound('click');
         router.push(`/play/tracing?lvl=${levelId}`);
+    };
+
+    const goToMath = (levelId: string, isLocked: boolean) => {
+        if (isLocked) {
+            playSound('wrong');
+            return;
+        }
+        playSound('click');
+        router.push(`/play/numbers?lvl=${levelId}`);
     };
 
     const goToStory = (storyId: string) => {
@@ -387,6 +398,63 @@ export default function PlayLobby() {
 
                                             <h3 className={`font-kids text-lg sm:text-xl md:text-2xl text-center max-w-[8rem] sm:max-w-[10rem] ${isUnlocked ? 'text-dark' : 'text-gray-500'}`}>
                                                 {level.name}
+                                            </h3>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Separador Visual para Numeros */}
+                    <div className="w-full border-t-8 border-dashed border-white/40 my-8"></div>
+
+                    {/* Sección: Minijuego de Números */}
+                    <div className="w-full flex flex-col items-center z-10 pb-20">
+                        <button
+                            onClick={() => toggleSection('numeros')}
+                            className="font-kids text-2xl sm:text-3xl md:text-4xl text-white mb-6 bg-orange-500/90 px-6 sm:px-8 py-3 rounded-full shadow-lg border-4 border-white hover:scale-105 transition-transform flex items-center justify-between w-[90%] md:w-auto md:min-w-[400px] group"
+                        >
+                            <span>🔢 Aventura de Números</span>
+                            <span className="text-2xl sm:text-3xl group-hover:scale-125 transition-transform ml-4">
+                                {sectionsOpen['numeros'] !== false ? '▼' : '▶'}
+                            </span>
+                        </button>
+
+                        {sectionsOpen['numeros'] !== false && (
+                            <div className="flex flex-row flex-wrap justify-center items-center gap-6 sm:gap-8 w-full p-4 sm:p-8 bg-orange-100/50 rounded-[2rem] sm:rounded-[3rem] animate-in slide-in-from-top-4 fade-in duration-300">
+                                {ALL_MATH_LEVELS.map((level, index) => {
+                                    const isFirst = index === 0;
+                                    const prevLevelId = index > 0 ? ALL_MATH_LEVELS[index - 1].id : null;
+                                    const isPrevCompleted = prevLevelId ? completedLevelIds.has(prevLevelId) : false;
+                                    const isCompleted = completedLevelIds.has(level.id);
+
+                                    const isUnlocked = isFirst || isPrevCompleted || isCompleted;
+
+                                    return (
+                                        <div
+                                            key={level.id}
+                                            onClick={() => goToMath(level.id, !isUnlocked)}
+                                            className={`relative flex flex-col items-center group bg-white/60 p-4 sm:p-6 rounded-3xl sm:rounded-[2rem] border-2 sm:border-4 border-white shadow-sm transition-all ${isUnlocked ? 'cursor-pointer hover:bg-white hover:-translate-y-2 hover:shadow-md active:translate-y-1' : 'opacity-70 grayscale cursor-not-allowed'}`}
+                                        >
+                                            <div className={`w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 flex items-center justify-center rounded-2xl bg-gradient-to-br ${isUnlocked ? 'from-orange-400 to-amber-500 shadow-inner text-white' : 'from-gray-300 to-gray-400 text-gray-500'} text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 relative`}>
+                                                {level.itemEmoji}
+
+                                                {!isUnlocked && (
+                                                    <div className="absolute -bottom-2 -right-2 bg-gray-400 text-white w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-lg sm:text-xl border-2 sm:border-4 border-white">
+                                                        🔒
+                                                    </div>
+                                                )}
+
+                                                {isCompleted && (
+                                                    <div className="absolute -bottom-2 -right-2 bg-success text-white w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-lg sm:text-xl border-2 sm:border-4 border-white z-10">
+                                                        ✅
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <h3 className={`font-kids text-lg sm:text-xl md:text-2xl text-center max-w-[8rem] sm:max-w-[10rem] ${isUnlocked ? 'text-dark' : 'text-gray-500'}`}>
+                                                Nivel {level.targetNumber}
                                             </h3>
                                         </div>
                                     );

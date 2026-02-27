@@ -7,7 +7,7 @@ import { checkRewardUnlock } from './unlock-logic';
 
 const progressSchema = z.object({
     kidId: z.string().uuid().optional(),
-    lessonType: z.enum(['phonetics', 'story', 'tracing', 'memory']),
+    lessonType: z.enum(['phonetics', 'story', 'tracing', 'memory', 'math']),
     lessonId: z.string().min(1),
     score: z.number().int().min(0).max(100),
     stars: z.number().int().min(0).max(3).optional(),

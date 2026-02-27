@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getDashboardStats, getKids } from '@/lib/actions/dashboard-actions';
 import Link from 'next/link';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Kid } from '@/types/database.types';
 
 export default function ParentDashboardPage() {
@@ -121,7 +121,12 @@ export default function ParentDashboardPage() {
                                         cursor={{ fill: '#F3F4F6' }}
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     />
-                                    <Bar dataKey="lessons" name="Lecciones" fill="#FFB020" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+                                    <Bar dataKey="phonetics" name="Fonética" stackId="a" fill="#3B82F6" maxBarSize={40} />
+                                    <Bar dataKey="math" name="Números" stackId="a" fill="#F97316" maxBarSize={40} />
+                                    <Bar dataKey="tracing" name="Trazos" stackId="a" fill="#22C55E" maxBarSize={40} />
+                                    <Bar dataKey="story" name="Cuentos" stackId="a" fill="#A855F7" maxBarSize={40} />
+                                    <Bar dataKey="memory" name="Memoria" stackId="a" fill="#6366F1" radius={[4, 4, 0, 0]} maxBarSize={40} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

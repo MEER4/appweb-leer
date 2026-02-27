@@ -4,7 +4,8 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import KidsZoneWrapper from '@/components/kids-zone-wrapper';
 import { KidButton } from '@/components/kid-button';
-import { playSound, speakText } from '@/lib/utils/sound-helper';
+import { playSound } from '@/lib/utils/sound-helper';
+import { useSpeech } from '@/hooks/use-speech';
 import { ALL_STORIES, Story } from '@/lib/constants/stories';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +16,7 @@ export default function StoryReader({ params }: { params: Promise<{ id: string }
     const router = useRouter();
     const resolvedParams = use(params);
     const storyId = resolvedParams.id;
+    const { speak, stop } = useSpeech();
 
     const [story, setStory] = useState<Story | null>(null);
     const [pageIndex, setPageIndex] = useState(0);
@@ -33,12 +35,13 @@ export default function StoryReader({ params }: { params: Promise<{ id: string }
     const handleReadText = () => {
         if (!story) return;
         playSound('click');
-        speakText(story.pages[pageIndex].text);
+        speak(story.pages[pageIndex].text);
     };
 
     const handleNext = () => {
         if (!story) return;
         playSound('click');
+        stop();
 
         if (pageIndex < story.pages.length - 1) {
             setPageIndex(prev => prev + 1);
@@ -49,6 +52,7 @@ export default function StoryReader({ params }: { params: Promise<{ id: string }
 
     const handlePrev = () => {
         playSound('click');
+        stop();
         if (pageIndex > 0) {
             setPageIndex(prev => prev - 1);
         }
