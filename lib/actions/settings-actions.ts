@@ -62,6 +62,28 @@ export async function deleteKid(kidId: string) {
     return { success: true };
 }
 
+export async function updateKidAvatar(kidId: string, newAvatar: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: 'No autorizado' };
+
+    const { error } = await supabase
+        .from('kids')
+        .update({ avatar_url: newAvatar })
+        .eq('id', kidId)
+        .eq('parent_id', user.id); // Protección
+
+    if (error) {
+        console.error("Error updating kid avatar", error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/parent/settings');
+    revalidatePath('/parent');
+    return { success: true };
+}
+
 // -- 2. SEGURIDAD --
 
 export async function updateParentPin(formData: FormData) {

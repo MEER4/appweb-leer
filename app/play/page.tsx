@@ -6,28 +6,58 @@ import { playSound } from '@/lib/utils/sound-helper';
 import { useState, useEffect } from 'react';
 import { ALL_PHONETICS_LEVELS } from '@/lib/constants/levels';
 import { ALL_STORIES } from '@/lib/constants/stories';
+import { MEMORY_LEVELS } from '@/lib/constants/memory-levels';
+import { TRACING_LEVELS } from '@/lib/constants/tracing-levels';
 import { getCompletedLevels } from '@/lib/actions/level-actions';
+import { getKids } from '@/lib/actions/dashboard-actions';
+import { Kid } from '@/types/database.types';
+import KidOnboarding from '@/components/kid-onboarding';
 
 export default function PlayLobby() {
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
     const [completedLevelIds, setCompletedLevelIds] = useState<Set<string>>(new Set());
+    const [activeKid, setActiveKid] = useState<Kid | null>(null);
+    const [showTutorial, setShowTutorial] = useState(false);
 
     useEffect(() => {
         setMounted(true);
         playSound('correct'); // Pequeño sonido al entrar al lobby
 
-        async function fetchLevels() {
+        async function fetchInitialData() {
             try {
-                const progress = await getCompletedLevels();
+                // Fetch progress
+                const progressPromise = getCompletedLevels();
+                // Fetch active kid (Para MVP asumimos el primer niño)
+                const kidsPromise = getKids();
+
+                const [progress, kids] = await Promise.all([progressPromise, kidsPromise]);
+
                 const completedSet = new Set(progress.map((p: any) => p.lesson_id));
                 setCompletedLevelIds(completedSet);
+
+                if (kids.length > 0) {
+                    setActiveKid(kids[0]);
+
+                    // ONBOARDING VERIFICATION
+                    const tutorialSeen = localStorage.getItem(`tutorial_seen_${kids[0].id}`);
+                    if (!tutorialSeen) {
+                        setShowTutorial(true);
+                    }
+                }
             } catch (e) {
-                console.error("Error fetching levels:", e);
+                console.error("Error fetching data:", e);
             }
         }
-        fetchLevels();
+        fetchInitialData();
     }, []);
+
+    const finishTutorial = () => {
+        if (activeKid) {
+            localStorage.setItem(`tutorial_seen_${activeKid.id}`, 'true');
+            setShowTutorial(false);
+        }
+    };
 
     const goToLevel = (levelId: string, isLocked: boolean) => {
         if (isLocked) {
@@ -36,6 +66,24 @@ export default function PlayLobby() {
         }
         playSound('click');
         router.push(`/play/phonetics?lvl=${levelId}`);
+    };
+
+    const goToMemory = (levelId: string, isLocked: boolean) => {
+        if (isLocked) {
+            playSound('wrong');
+            return;
+        }
+        playSound('click');
+        router.push(`/play/memory?lvl=${levelId}`);
+    };
+
+    const goToTracing = (levelId: string, isLocked: boolean) => {
+        if (isLocked) {
+            playSound('wrong');
+            return;
+        }
+        playSound('click');
+        router.push(`/play/tracing?lvl=${levelId}`);
     };
 
     const goToStory = (storyId: string) => {
@@ -57,6 +105,15 @@ export default function PlayLobby() {
 
     return (
         <KidsZoneWrapper>
+            {/* Tutorial Cinemático de Bienvenida */}
+            {showTutorial && activeKid && (
+                <KidOnboarding
+                    kidName={activeKid.name}
+                    kidAvatar={activeKid.avatar_url || '👦'}
+                    onComplete={finishTutorial}
+                />
+            )}
+
             <div className="min-h-screen bg-bg-kids flex flex-col items-center p-6 relative">
                 <header className="w-full max-w-5xl flex justify-between items-center p-4 bg-white/50 backdrop-blur-md rounded-3xl mb-10 shadow-sm border-2 border-white z-20">
                     <div className="flex items-center gap-4">
@@ -67,11 +124,19 @@ export default function PlayLobby() {
                         >
                             <span className="text-3xl md:text-4xl">⚙️</span>
                         </button>
-                        <h1 className="font-kids text-4xl md:text-5xl text-primary drop-shadow-sm">Mapa de Aventuras</h1>
+
+                        {/* Avatar Display */}
+                        {activeKid && (
+                            <div className="hidden sm:flex items-center gap-3 bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100">
+                                <span className="text-3xl md:text-4xl">{activeKid.avatar_url || '🧑'}</span>
+                                <span className="font-kids text-2xl text-dark hidden md:inline-block">¡Hola {activeKid.name}!</span>
+                            </div>
+                        )}
+
                     </div>
                     <button
                         onClick={goToRewards}
-                        className="font-kids text-2xl md:text-3xl text-secondary bg-white px-6 py-4 rounded-3xl shadow-[0_6px_0_0_#e2e8f0] active:translate-y-2 active:shadow-none transition-all flex items-center gap-3"
+                        className="font-kids text-2xl md:text-3xl text-secondary bg-white px-6 py-4 rounded-3xl shadow-[0_6px_0_0_#e2e8f0] hover:-translate-y-1 hover:shadow-[0_8px_0_0_#e2e8f0] active:translate-y-2 active:shadow-none transition-all flex items-center gap-3"
                     >
                         <span className="text-3xl md:text-4xl">⭐</span> Mis Premios
                     </button>
@@ -183,6 +248,107 @@ export default function PlayLobby() {
                             </div>
                         ))}
                     </div>
+                    {/* Separador Visual para Memoria */}
+                    <div className="w-full border-t-8 border-dashed border-white/40 my-8"></div>
+
+                    {/* Sección: Minijuego Memorama */}
+                    <div className="w-full flex w-full flex-col items-center z-10 pb-20">
+                        <h2 className="font-kids text-3xl md:text-4xl text-white mb-8 bg-[#3b82f6]/90 px-8 py-3 rounded-full shadow-lg border-4 border-white">
+                            🧩 Cueva de Concentración
+                        </h2>
+
+                        <div className="flex flex-row flex-wrap justify-center items-center gap-8 w-full p-8 bg-blue-100/50 rounded-[3rem]">
+                            {MEMORY_LEVELS.map((level, index) => {
+                                const isFirst = index === 0;
+                                const prevLevelId = index > 0 ? MEMORY_LEVELS[index - 1].id : null;
+                                const isPrevCompleted = prevLevelId ? completedLevelIds.has(prevLevelId) : false;
+                                const isCompleted = completedLevelIds.has(level.id);
+
+                                const isUnlocked = isFirst || isPrevCompleted || isCompleted;
+
+                                return (
+                                    <div
+                                        key={level.id}
+                                        onClick={() => goToMemory(level.id, !isUnlocked)}
+                                        className={`relative flex flex-col items-center group bg-white/60 p-6 rounded-[2rem] border-4 border-white shadow-sm transition-all ${isUnlocked ? 'cursor-pointer hover:bg-white hover:-translate-y-2 hover:shadow-md active:translate-y-1' : 'opacity-70 grayscale cursor-not-allowed'}`}
+                                    >
+                                        <div className={`w-24 h-24 md:w-32 md:h-32 flex items-center justify-center rounded-2xl bg-gradient-to-br ${isUnlocked ? 'from-blue-400 to-indigo-500 shadow-inner text-white' : 'from-gray-300 to-gray-400 text-gray-500'} text-5xl md:text-6xl mb-4 relative`}>
+                                            🧠
+
+                                            {!isUnlocked && (
+                                                <div className="absolute -bottom-2 -right-2 bg-gray-400 text-white w-10 h-10 flex items-center justify-center rounded-full text-xl border-4 border-white">
+                                                    🔒
+                                                </div>
+                                            )}
+
+                                            {isCompleted && (
+                                                <div className="absolute -bottom-2 -right-2 bg-success text-white w-10 h-10 flex items-center justify-center rounded-full text-xl border-4 border-white z-10">
+                                                    ✅
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <h3 className={`font-kids text-xl md:text-2xl text-center max-w-[10rem] ${isUnlocked ? 'text-dark' : 'text-gray-500'}`}>
+                                            {level.name}
+                                        </h3>
+                                        <p className="text-xs text-gray-500 font-bold mt-2 bg-white px-3 py-1 rounded-full">
+                                            {level.gridSize} Pares
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Separador Visual para Trazos */}
+                    <div className="w-full border-t-8 border-dashed border-white/40 my-8"></div>
+
+                    {/* Sección: Minijuego de Trazos */}
+                    <div className="w-full flex w-full flex-col items-center z-10 pb-20">
+                        <h2 className="font-kids text-3xl md:text-4xl text-white mb-8 bg-green-500/90 px-8 py-3 rounded-full shadow-lg border-4 border-white">
+                            🎨 Pizarra de Trazos
+                        </h2>
+
+                        <div className="flex flex-row flex-wrap justify-center items-center gap-8 w-full p-8 bg-green-100/50 rounded-[3rem]">
+                            {TRACING_LEVELS.map((level, index) => {
+                                const isFirst = index === 0;
+                                const prevLevelId = index > 0 ? TRACING_LEVELS[index - 1].id : null;
+                                const isPrevCompleted = prevLevelId ? completedLevelIds.has(prevLevelId) : false;
+                                const isCompleted = completedLevelIds.has(level.id);
+
+                                const isUnlocked = isFirst || isPrevCompleted || isCompleted;
+
+                                return (
+                                    <div
+                                        key={level.id}
+                                        onClick={() => goToTracing(level.id, !isUnlocked)}
+                                        className={`relative flex flex-col items-center group bg-white/60 p-6 rounded-[2rem] border-4 border-white shadow-sm transition-all ${isUnlocked ? 'cursor-pointer hover:bg-white hover:-translate-y-2 hover:shadow-md active:translate-y-1' : 'opacity-70 grayscale cursor-not-allowed'}`}
+                                    >
+                                        <div className={`w-24 h-24 md:w-32 md:h-32 flex items-center justify-center rounded-2xl bg-gradient-to-br ${isUnlocked ? 'from-green-400 to-emerald-500 shadow-inner text-white' : 'from-gray-300 to-gray-400 text-gray-500'} text-5xl md:text-6xl mb-4 relative`}>
+                                            🖍️
+
+                                            {!isUnlocked && (
+                                                <div className="absolute -bottom-2 -right-2 bg-gray-400 text-white w-10 h-10 flex items-center justify-center rounded-full text-xl border-4 border-white">
+                                                    🔒
+                                                </div>
+                                            )}
+
+                                            {isCompleted && (
+                                                <div className="absolute -bottom-2 -right-2 bg-success text-white w-10 h-10 flex items-center justify-center rounded-full text-xl border-4 border-white z-10">
+                                                    ✅
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <h3 className={`font-kids text-xl md:text-2xl text-center max-w-[10rem] ${isUnlocked ? 'text-dark' : 'text-gray-500'}`}>
+                                            {level.name}
+                                        </h3>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                 </main>
             </div>
         </KidsZoneWrapper>

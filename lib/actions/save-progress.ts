@@ -7,9 +7,11 @@ import { checkRewardUnlock } from './unlock-logic';
 
 const progressSchema = z.object({
     kidId: z.string().uuid().optional(),
-    lessonType: z.enum(['phonetics', 'story', 'tracing']),
+    lessonType: z.enum(['phonetics', 'story', 'tracing', 'memory']),
     lessonId: z.string().min(1),
     score: z.number().int().min(0).max(100),
+    stars: z.number().int().min(0).max(3).optional(),
+    mistakes: z.number().int().min(0).optional(),
 });
 
 export async function saveProgress(input: z.infer<typeof progressSchema>) {

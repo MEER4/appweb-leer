@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { getKids } from '@/lib/actions/dashboard-actions';
-import { addKid, deleteKid, updateParentPin, parentSignOut } from '@/lib/actions/settings-actions';
+import { addKid, deleteKid, updateKidAvatar, updateParentPin, parentSignOut } from '@/lib/actions/settings-actions';
 import { Kid } from '@/types/database.types';
+import { AVAILABLE_AVATARS } from '@/lib/constants/avatars';
 
 export default function SettingsPage() {
     const [kids, setKids] = useState<Kid[]>([]);
@@ -12,9 +13,13 @@ export default function SettingsPage() {
     // Forms state
     const [newKidName, setNewKidName] = useState('');
     const [newKidAge, setNewKidAge] = useState('');
+    const [newKidAvatar, setNewKidAvatar] = useState<string>(AVAILABLE_AVATARS[0]);
     const [newPin, setNewPin] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+
+    // Editor temporal
+    const [editingKid, setEditingKid] = useState<string | null>(null);
 
     const fetchKids = async () => {
         setLoading(true);
@@ -39,6 +44,7 @@ export default function SettingsPage() {
         const fd = new FormData();
         fd.append('name', newKidName);
         fd.append('age', newKidAge);
+        fd.append('avatar_icon', newKidAvatar);
 
         try {
             const res = await addKid(fd);
@@ -49,6 +55,7 @@ export default function SettingsPage() {
             setSuccessMsg(`¡${newKidName} agregado correctamente!`);
             setNewKidName('');
             setNewKidAge('');
+            setNewKidAvatar(AVAILABLE_AVATARS[0]);
             fetchKids(); // Refrescar lista
         } catch (err: any) {
             setErrorMsg(err.message || 'Error al agregar (catch)');
@@ -67,6 +74,21 @@ export default function SettingsPage() {
             setErrorMsg(err.message || 'Error al eliminar');
         }
     };
+
+    const handleUpdateKidAvatar = async (kidId: string, newAvatar: string) => {
+        setErrorMsg('');
+        try {
+            const res = await updateKidAvatar(kidId, newAvatar);
+            if (!res?.success) {
+                setErrorMsg(res?.error || 'Error al guardar nuevo avatar');
+                return;
+            }
+            setEditingKid(null);
+            fetchKids();
+        } catch (error) {
+            setErrorMsg('Error al guardar nuevo avatar');
+        }
+    }
 
     const handleUpdatePin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -115,20 +137,52 @@ export default function SettingsPage() {
                             ) : (
                                 <ul className="space-y-3 mb-8">
                                     {kids.map((kid) => (
-                                        <li key={kid.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-3xl">{kid.avatar_url || '🧑'}</span>
-                                                <div>
-                                                    <p className="font-bold text-dark">{kid.name}</p>
-                                                    <p className="text-sm text-gray-500">{kid.age} años</p>
+                                        <li key={kid.id} className="flex flex-col p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <button
+                                                        onClick={() => setEditingKid(editingKid === kid.id ? null : kid.id)}
+                                                        className="text-4xl bg-white p-2 rounded-full shadow-sm border border-gray-100 hover:border-primary transition-all group relative"
+                                                        title="Cambiar Avatar"
+                                                    >
+                                                        {kid.avatar_url || '🧑'}
+                                                        <div className="absolute -bottom-2 -right-2 bg-blue-100 text-primary text-xs w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            ✏️
+                                                        </div>
+                                                    </button>
+                                                    <div>
+                                                        <p className="font-bold text-dark">{kid.name}</p>
+                                                        <p className="text-sm text-gray-500">{kid.age} años</p>
+                                                    </div>
                                                 </div>
+                                                <button
+                                                    onClick={() => handleDeleteKid(kid.id, kid.name)}
+                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors text-sm font-bold"
+                                                >
+                                                    Eliminar
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => handleDeleteKid(kid.id, kid.name)}
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded-lg transition-colors text-sm font-bold"
-                                            >
-                                                Eliminar
-                                            </button>
+
+                                            {/* Editor de Avatar Inline */}
+                                            {editingKid === kid.id && (
+                                                <div className="mt-4 p-4 bg-white rounded-xl border border-blue-100 shadow-sm animate-in slide-in-from-top-2">
+                                                    <p className="text-xs font-bold text-gray-500 mb-3 text-center">Elige un nuevo Avatar para {kid.name}</p>
+                                                    <div className="flex flex-wrap justify-center gap-2">
+                                                        {AVAILABLE_AVATARS.map(avatar => (
+                                                            <button
+                                                                key={avatar}
+                                                                onClick={() => handleUpdateKidAvatar(kid.id, avatar)}
+                                                                className={`text-2xl p-2 rounded-xl border-2 transition-all ${kid.avatar_url === avatar ? 'border-primary bg-blue-50' : 'border-transparent hover:border-gray-200 hover:scale-110'}`}
+                                                            >
+                                                                {avatar}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex justify-center mt-3">
+                                                        <button onClick={() => setEditingKid(null)} className="text-xs text-gray-400 hover:text-gray-600 font-bold">Cancelar</button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
@@ -137,35 +191,55 @@ export default function SettingsPage() {
                             {/* Formulario Agregar */}
                             <div className="bg-[#F8FAFC] p-6 rounded-xl border border-blue-100">
                                 <h3 className="font-bold text-dark mb-4 text-sm uppercase tracking-wider">Agregar Nuevo Perfil</h3>
-                                <form onSubmit={handleAddKid} className="flex gap-4 items-end">
-                                    <div className="flex-1">
-                                        <label className="block text-xs text-gray-500 mb-1 font-bold">Nombre</label>
-                                        <input
-                                            type="text"
-                                            value={newKidName}
-                                            onChange={(e) => setNewKidName(e.target.value)}
-                                            className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                                            placeholder="Ej. Lucas"
-                                            required
-                                        />
+                                <form onSubmit={handleAddKid} className="flex flex-col gap-6">
+                                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                                        <div className="flex-1 w-full">
+                                            <label className="block text-xs text-gray-500 mb-1 font-bold">Nombre</label>
+                                            <input
+                                                type="text"
+                                                value={newKidName}
+                                                onChange={(e) => setNewKidName(e.target.value)}
+                                                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                                                placeholder="Ej. Lucas"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="w-full md:w-24">
+                                            <label className="block text-xs text-gray-500 mb-1 font-bold">Edad</label>
+                                            <input
+                                                type="number"
+                                                min="2" max="12"
+                                                value={newKidAge}
+                                                onChange={(e) => setNewKidAge(e.target.value)}
+                                                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                                                placeholder="5"
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="w-24">
-                                        <label className="block text-xs text-gray-500 mb-1 font-bold">Edad</label>
-                                        <input
-                                            type="number"
-                                            min="2" max="12"
-                                            value={newKidAge}
-                                            onChange={(e) => setNewKidAge(e.target.value)}
-                                            className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                                            placeholder="5"
-                                            required
-                                        />
+
+                                    {/* Selector de Avatar */}
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-2 font-bold">Avatar</label>
+                                        <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+                                            {AVAILABLE_AVATARS.map(avatar => (
+                                                <button
+                                                    key={avatar}
+                                                    type="button"
+                                                    onClick={() => setNewKidAvatar(avatar)}
+                                                    className={`text-2xl p-2 rounded-xl transition-all border-2 ${newKidAvatar === avatar ? 'border-primary bg-blue-50 scale-110 shadow-sm' : 'border-transparent hover:bg-white hover:scale-105'}`}
+                                                >
+                                                    {avatar}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
+
                                     <button
                                         type="submit"
-                                        className="bg-primary hover:bg-opacity-90 text-white font-bold py-2 px-6 rounded-xl transition-colors h-[42px]"
+                                        className="bg-primary hover:bg-opacity-90 text-white font-bold py-3 px-6 rounded-xl transition-colors w-full md:w-auto self-end mt-2"
                                     >
-                                        Guardar
+                                        Guardar Perfil
                                     </button>
                                 </form>
                             </div>
